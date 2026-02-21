@@ -27,16 +27,26 @@ export const AdminPanel: React.FC<{currentUser: Member | null}> = ({currentUser}
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (currentUser?.role === 'ADMIN') {
-        setGoals(storageService.getStrategicGoals());
-        setVictories(storageService.getVictories());
-        
-        setLoadingPosts(true);
-        storageService.getPosts()
-          .then(setAllPosts)
-          .catch(err => console.error("Failed to load posts for moderation", err))
-          .finally(() => setLoadingPosts(false));
-    }
+    const initAdmin = async () => {
+      if (currentUser?.role === 'ADMIN') {
+        try {
+          const fetchedGoals = await storageService.getStrategicGoals();
+          const fetchedVictories = await storageService.getVictories();
+          setGoals(fetchedGoals);
+          setVictories(fetchedVictories);
+          
+          setLoadingPosts(true);
+          const posts = await storageService.getPosts();
+          setAllPosts(posts);
+        } catch (err) {
+          console.error("Failed to load admin data", err);
+          setErrorMsg("Erreur lors du chargement des données.");
+        } finally {
+          setLoadingPosts(false);
+        }
+      }
+    };
+    initAdmin();
   }, [currentUser]);
 
   // --- ACCESS CONTROL ---
@@ -55,7 +65,7 @@ export const AdminPanel: React.FC<{currentUser: Member | null}> = ({currentUser}
   }
 
   // --- NOTIFICATIONS HANDLERS ---
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !message) return;
 
@@ -67,59 +77,81 @@ export const AdminPanel: React.FC<{currentUser: Member | null}> = ({currentUser}
       authorName: currentUser?.name || 'Administration'
     };
 
-    storageService.addNotification(newNotif);
-    setTitle('');
-    setMessage('');
-    setSuccessMsg('Notification envoyée à tous les membres avec succès !');
-    setTimeout(() => setSuccessMsg(''), 3000);
+    try {
+      await storageService.addNotification(newNotif);
+      setTitle('');
+      setMessage('');
+      setSuccessMsg('Notification envoyée à tous les membres avec succès !');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err: any) {
+      console.error("Failed to send notification", err);
+      setErrorMsg(`Erreur : ${err.message}`);
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
   };
 
   // --- GOALS HANDLERS ---
-  const handleAddGoal = () => {
+  const handleAddGoal = async () => {
     if (!newGoalText.trim()) return;
-    const updatedGoals = storageService.addStrategicGoal(newGoalText);
-    setGoals(updatedGoals);
-    setNewGoalText('');
+    try {
+      const updatedGoals = await storageService.addStrategicGoal(newGoalText);
+      setGoals(updatedGoals);
+      setNewGoalText('');
+    } catch (err: any) {
+      setErrorMsg(`Erreur : ${err.message}`);
+    }
   };
 
-  const handleToggleGoal = (id: string) => {
-    const updatedGoals = storageService.toggleStrategicGoal(id);
-    setGoals(updatedGoals);
+  const handleToggleGoal = async (id: string) => {
+    try {
+      const updatedGoals = await storageService.toggleStrategicGoal(id);
+      setGoals(updatedGoals);
+    } catch (err: any) {
+      setErrorMsg(`Erreur : ${err.message}`);
+    }
   };
 
-  const handleDeleteGoal = (id: string) => {
-    const updatedGoals = storageService.deleteStrategicGoal(id);
-    setGoals(updatedGoals);
+  const handleDeleteGoal = async (id: string) => {
+    try {
+      const updatedGoals = await storageService.deleteStrategicGoal(id);
+      setGoals(updatedGoals);
+    } catch (err: any) {
+      setErrorMsg(`Erreur : ${err.message}`);
+    }
   };
 
   // --- VICTORIES HANDLERS ---
-  const handleSaveVictory = () => {
+  const handleSaveVictory = async () => {
     if (!newVictoryTitle.trim() || !newVictoryDesc.trim()) return;
 
-    if (editingVictoryId) {
-        // Update
-        const updatedList = storageService.updateVictory(editingVictoryId, {
-            title: newVictoryTitle,
-            description: newVictoryDesc
-        });
-        setVictories(updatedList);
-        setEditingVictoryId(null);
-        setSuccessMsg('Victoire modifiée avec succès !');
-    } else {
-        // Create
-        const newVictory: ClusterVictory = {
-            id: Date.now().toString(),
-            title: newVictoryTitle,
-            description: newVictoryDesc,
-            date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
-        };
-        const updatedList = storageService.addVictory(newVictory);
-        setVictories(updatedList);
-        setSuccessMsg('Victoire ajoutée avec succès !');
+    try {
+      if (editingVictoryId) {
+          // Update
+          const updatedList = await storageService.updateVictory(editingVictoryId, {
+              title: newVictoryTitle,
+              description: newVictoryDesc
+          });
+          setVictories(updatedList);
+          setEditingVictoryId(null);
+          setSuccessMsg('Victoire modifiée avec succès !');
+      } else {
+          // Create
+          const newVictory: ClusterVictory = {
+              id: Date.now().toString(),
+              title: newVictoryTitle,
+              description: newVictoryDesc,
+              date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+          };
+          const updatedList = await storageService.addVictory(newVictory);
+          setVictories(updatedList);
+          setSuccessMsg('Victoire ajoutée avec succès !');
+      }
+      
+      setNewVictoryTitle('');
+      setNewVictoryDesc('');
+    } catch (err: any) {
+      setErrorMsg(`Erreur : ${err.message}`);
     }
-    
-    setNewVictoryTitle('');
-    setNewVictoryDesc('');
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
@@ -135,10 +167,14 @@ export const AdminPanel: React.FC<{currentUser: Member | null}> = ({currentUser}
       setNewVictoryDesc('');
   };
 
-  const handleDeleteVictory = (id: string) => {
+  const handleDeleteVictory = async (id: string) => {
       if (window.confirm('Êtes-vous sûr de vouloir supprimer cette victoire ?')) {
-          const updatedList = storageService.deleteVictory(id);
-          setVictories(updatedList);
+          try {
+            const updatedList = await storageService.deleteVictory(id);
+            setVictories(updatedList);
+          } catch (err: any) {
+            setErrorMsg(`Erreur : ${err.message}`);
+          }
       }
   };
 

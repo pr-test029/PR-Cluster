@@ -8,13 +8,22 @@ export const Notifications: React.FC = () => {
   const [victories, setVictories] = useState<ClusterVictory[]>([]);
 
   useEffect(() => {
-    setNotifications(storageService.getNotifications());
-    setVictories(storageService.getVictories());
+    const fetchAdminData = async () => {
+      try {
+        const fetchedNotifications = await storageService.getNotifications();
+        const fetchedVictories = await storageService.getVictories();
+        setNotifications(fetchedNotifications);
+        setVictories(fetchedVictories);
+      } catch (error) {
+        console.error("Failed to fetch notifications or victories", error);
+      }
+    };
+    fetchAdminData();
   }, []);
 
   return (
     <div className="max-w-2xl mx-auto pb-20 animate-in fade-in duration-500">
-      
+
       {/* Official Announcements Section */}
       <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
@@ -61,18 +70,18 @@ export const Notifications: React.FC = () => {
         {victories.length > 0 ? (
           victories.map(victory => (
             <div key={victory.id} className="relative bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-900/20 dark:to-dark-card p-6 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-900/30 animate-in slide-in-from-bottom-2 overflow-hidden">
-               <div className="absolute top-0 right-0 p-4 opacity-10">
-                 <Trophy className="w-24 h-24 text-yellow-600 dark:text-yellow-500" />
-               </div>
-               <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{victory.title}</h3>
-                    <span className="text-xs font-bold bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400 px-2 py-1 rounded-full">
-                      {victory.date}
-                    </span>
-                  </div>
-                  <p className="text-gray-800 dark:text-gray-300 font-medium leading-relaxed">{victory.description}</p>
-               </div>
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Trophy className="w-24 h-24 text-yellow-600 dark:text-yellow-500" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">{victory.title}</h3>
+                  <span className="text-xs font-bold bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-400 px-2 py-1 rounded-full">
+                    {victory.date}
+                  </span>
+                </div>
+                <p className="text-gray-800 dark:text-gray-300 font-medium leading-relaxed">{victory.description}</p>
+              </div>
             </div>
           ))
         ) : (
