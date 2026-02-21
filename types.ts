@@ -51,6 +51,7 @@ export interface DiscussionMessage {
   authorName: string;
   authorAvatar: string;
   content: string;
+  recipientId?: string; // If absent, it's a group message
   timestamp: string; // ISO string for sorting
   displayTime: string; // Human readable time
 }

@@ -235,15 +235,46 @@ export const storageService = {
     }
   },
 
-  // --- DISCUSSION GÉNÉRALE ---
-  getDiscussionMessages: async (limitCount = 15, beforeTimestamp?: string) => {
-    const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'), firestoreLimit(limitCount));
+  // --- DISCUSSION GÉNÉRALE & PRIVÉE ---
+  getDiscussionMessages: async (limitCount = 30, targetId: string = 'group', currentUserId?: string) => {
+    let q;
+    if (targetId === 'group') {
+      // Group messages (no recipientId or recipientId === 'group')
+      q = query(
+        collection(db, 'messages'),
+        where('recipientId', '==', 'group'),
+        orderBy('timestamp', 'desc'),
+        firestoreLimit(limitCount)
+      );
+    } else {
+      // Private messages between currentUserId and targetId
+      // Firestore doesn't support OR across fields easily with orderBy, 
+      // so we use a simpler approach or fetch all and filter in memory for small datasets.
+      // For this app, we'll fetch messages where (authorId == me AND recipientId == target) OR (authorId == target AND recipientId == me)
+      // Note: This requires an index.
+      q = query(
+        collection(db, 'messages'),
+        where('recipientId', 'in', [targetId, currentUserId]),
+        orderBy('timestamp', 'desc'),
+        firestoreLimit(limitCount)
+      );
+    }
+
     const snapshot = await getDocs(q);
-    const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DiscussionMessage));
-    return msgs.reverse(); // Return chronological
+    let msgs = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as DiscussionMessage));
+
+    if (targetId !== 'group' && currentUserId) {
+      // Filter further to ensure it's specifically between these two users
+      msgs = msgs.filter(m =>
+        (m.authorId === currentUserId && m.recipientId === targetId) ||
+        (m.authorId === targetId && m.recipientId === currentUserId)
+      );
+    }
+
+    return msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   },
 
-  addDiscussionMessage: async (msgData: { authorId: string, content: string }) => {
+  addDiscussionMessage: async (msgData: { authorId: string, content: string, recipientId?: string }) => {
     const userDoc = await getDoc(doc(db, 'members', msgData.authorId));
     const userData = userDoc.exists() ? userDoc.data() as Member : null;
 
@@ -252,6 +283,7 @@ export const storageService = {
       authorName: userData?.name || 'Membre',
       authorAvatar: userData?.avatar || '',
       content: msgData.content,
+      recipientId: msgData.recipientId || 'group',
       timestamp: new Date().toISOString(),
       displayTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
