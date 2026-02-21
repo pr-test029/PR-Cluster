@@ -27,7 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: AppView.FEED, label: 'Fil d\'Actualité', icon: Users },
-    { id: AppView.DISCUSSION, label: 'Discussion', icon: MessagesSquare },
+    { id: AppView.DISCUSSION, label: 'Messagerie', icon: MessagesSquare },
     { id: AppView.MAP, label: 'Carte des Membres', icon: MapPin },
     { id: AppView.TRAINING, label: 'Formations', icon: GraduationCap },
     { id: AppView.DASHBOARD, label: 'Tableau de Bord', icon: LayoutDashboard },

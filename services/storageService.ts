@@ -302,6 +302,8 @@ export const storageService = {
         );
       }
       callback(msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+    }, (error) => {
+      console.error("Messaging Subscribe Error (may need index):", error);
     });
   },
 
@@ -348,6 +350,8 @@ export const storageService = {
         }
       });
       callback(counts);
+    }, (error) => {
+      console.error("Unread Counts Error (may need index):", error);
     });
   },
 

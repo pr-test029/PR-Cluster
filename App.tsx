@@ -37,19 +37,23 @@ const App: React.FC = () => {
   const [viewedMemberId, setViewedMemberId] = useState<string | null>(null);
 
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        const user = await storageService.getCurrentUser();
-        setCurrentUser(user);
-        const fetchedNotifications = await storageService.getNotifications();
-        setNotifications(fetchedNotifications);
-      } catch (e) {
-        console.error("Init error", e);
-      } finally {
-        setLoading(false);
+    const auth = storageService.getAuth();
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const userData = await storageService.getUserData(user.uid);
+          setCurrentUser(userData);
+          const fetchedNotifications = await storageService.getNotifications();
+          setNotifications(fetchedNotifications);
+        } catch (e) {
+          console.error("Auth init error:", e);
+        }
+      } else {
+        setCurrentUser(null);
       }
-    };
-    initApp();
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -117,11 +121,22 @@ const App: React.FC = () => {
   // Messages Unread Listener
   useEffect(() => {
     if (!currentUser) return;
+    let prevTotal = -1;
     const unsubscribe = storageService.getUnreadCounts(currentUser.id, (counts) => {
       const total = Object.values(counts).reduce((a, b) => a + b, 0);
-      setUnreadMessagesCount(total);
 
-      // OPTIONAL: Trigger a vibration/sound if total increased
+      // Notify if new message arrived
+      if (prevTotal !== -1 && total > prevTotal) {
+        // Show browser notification if allowed
+        if (Notification.permission === 'granted') {
+          new window.Notification("Cluster PR", {
+            body: "Vous avez un nouveau message !",
+            icon: '/favicon.ico'
+          });
+        }
+      }
+      prevTotal = total;
+      setUnreadMessagesCount(total);
     });
     return () => unsubscribe();
   }, [currentUser]);
@@ -269,7 +284,7 @@ const App: React.FC = () => {
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors">
                 {currentView === AppView.FEED && 'Fil d\'Actualité'}
-                {currentView === AppView.DISCUSSION && 'Discussion Générale'}
+                {currentView === AppView.DISCUSSION && 'Messagerie Directe'}
                 {currentView === AppView.MAP && 'Carte des Membres'}
                 {currentView === AppView.PROFILE && (currentUser && viewedMemberId === currentUser.id ? 'Mon Parcours' : 'Profil Membre')}
                 {currentView === AppView.TRAINING && 'Centre de Formation'}
