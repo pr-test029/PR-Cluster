@@ -76,7 +76,7 @@ export interface TrainingResource {
   authorName: string;
 }
 
-export interface Notification {
+export interface AppNotification {
   id: string;
   title: string;
   message: string;

@@ -11,7 +11,9 @@ import { AdminPanel } from './components/AdminPanel';
 import { Notifications } from './components/Notifications';
 import { GeneralDiscussion } from './components/GeneralDiscussion';
 import { Settings } from './components/Settings';
-import { AppView, Member, Notification } from './types';
+import { AppView, Member, AppNotification } from './types';
+import { messaging } from './services/firebaseClient';
+import { getToken, onMessage } from 'firebase/messaging';
 import { Menu, Bell, Sparkles, LogIn, Loader2 } from 'lucide-react';
 import { CLUSTER_INFO } from './constants';
 import { storageService } from './services/storageService';
@@ -21,7 +23,7 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Member | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -58,6 +60,58 @@ const App: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Firebase Cloud Messaging Setup
+  useEffect(() => {
+    if (!currentUser || !messaging) return;
+
+    const setupFCM = async () => {
+      try {
+        // Request permission
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // Get token
+          const token = await getToken(messaging, {
+            vapidKey: 'BJ8ktnp1WUuFcf94FgfispFxHuv1y4uATEPFu4V-w4cLfufCv26Z1VlG2pln8OsfJX__aH_UxaXFjlIqBjlNxXY'
+          });
+
+          if (token) {
+            await storageService.saveFcmToken(currentUser.id, token);
+            console.log("FCM Token registered successfully");
+          }
+        }
+      } catch (error) {
+        console.error("Error setting up FCM:", error);
+      }
+    };
+
+    setupFCM();
+
+    // Listen for foreground messages
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log('Foreground message received:', payload);
+      if (payload.notification) {
+        const newNotif: AppNotification = {
+          id: Date.now().toString(),
+          title: payload.notification.title || 'Notification',
+          message: payload.notification.body || '',
+          date: new Date().toLocaleDateString('fr-FR'),
+          authorName: 'Système'
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+
+        // Browser notification if allowed
+        if (Notification.permission === 'granted') {
+          new window.Notification(payload.notification.title || 'Cluster PR', {
+            body: payload.notification.body,
+            icon: '/favicon.ico'
+          });
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');

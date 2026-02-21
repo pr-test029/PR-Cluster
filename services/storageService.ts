@@ -20,7 +20,7 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { auth, db, googleProvider } from './firebaseClient';
-import { Member, Post, TrainingResource, Notification, ClusterVictory, DiscussionMessage, Comment } from '../types';
+import { Member, Post, TrainingResource, AppNotification, ClusterVictory, DiscussionMessage, Comment } from '../types';
 
 export const storageService = {
   // --- AUTHENTIFICATION ---
@@ -265,13 +265,13 @@ export const storageService = {
   },
 
   // --- LOGIQUE ADMIN (Maintenant Firestore) ---
-  getNotifications: async (): Promise<Notification[]> => {
+  getNotifications: async (): Promise<AppNotification[]> => {
     const snapshot = await getDocs(collection(db, 'notifications'));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as Notification));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as AppNotification));
   },
 
-  addNotification: async (n: Notification) => {
-    const { id, ...data } = n as any;
+  addNotification: async (notification: AppNotification) => {
+    const { id, ...data } = notification as any;
     await addDoc(collection(db, 'notifications'), data);
   },
 
@@ -318,5 +318,14 @@ export const storageService = {
   deleteVictory: async (id: string) => {
     await deleteDoc(doc(db, 'victories', id));
     return storageService.getVictories();
+  },
+
+  saveFcmToken: async (userId: string, token: string): Promise<void> => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { fcmToken: token });
+    } catch (error) {
+      console.error("Error saving FCM token", error);
+    }
   }
 };

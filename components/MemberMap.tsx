@@ -40,10 +40,10 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
   }, []);
 
   // Filter members based on search
-  const filteredMembers = allMembers.filter(member => 
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.location.city.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMembers = allMembers.filter(member =>
+    (member.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (member.businessName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (member.location?.city?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   const selectedMember = allMembers.find(m => m.id === selectedMemberId);
@@ -82,8 +82,8 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
     markersRef.current = {};
 
     const createCustomIcon = (avatarUrl: string, isCurrentUser: boolean) => {
-       const borderColor = isCurrentUser ? '#3b82f6' : '#ef4444'; // Blue for me, Red for others
-       return L.divIcon({
+      const borderColor = isCurrentUser ? '#3b82f6' : '#ef4444'; // Blue for me, Red for others
+      return L.divIcon({
         className: 'custom-div-icon',
         html: `<div style="background-image: url('${avatarUrl}'); width: 40px; height: 40px; border-radius: 50%; background-size: cover; border: 3px solid ${borderColor}; box-shadow: 0 4px 6px rgba(0,0,0,0.3); background-color: white;"></div>`,
         iconSize: [40, 40],
@@ -94,23 +94,29 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
 
     // Add markers for filtered members
     filteredMembers.forEach((member) => {
+      // SAFETY CHECK: Skip if location is missing
+      if (!member.location?.lat || !member.location?.lng) {
+        console.warn(`Member ${member.id} (${member.name}) has no valid location cooordinates.`);
+        return;
+      }
+
       const isCurrentUser = currentUser?.id === member.id;
       const marker = L.marker([member.location.lat, member.location.lng], {
         icon: createCustomIcon(member.avatar, isCurrentUser),
         zIndexOffset: isCurrentUser ? 1000 : 0 // Put current user on top
       })
-      .addTo(layerGroupRef.current)
-      .bindPopup(`
+        .addTo(layerGroupRef.current)
+        .bindPopup(`
         <div class="font-sans p-1 min-w-[150px]">
           <h3 class="font-bold text-sm ${isCurrentUser ? 'text-blue-600' : 'text-red-600'} mb-1">
             ${member.businessName} ${isCurrentUser ? '(Vous)' : ''}
           </h3>
           <p class="text-xs text-gray-800 font-medium">${member.name}</p>
           <p class="text-xs text-gray-500 mt-1 flex items-center">
-            <span class="mr-1">📍</span> ${member.location.city}
+            <span class="mr-1">📍</span> ${member.location.city || 'Ville inconnue'}
           </p>
           <span class="inline-block mt-2 px-2 py-0.5 ${isCurrentUser ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-red-50 text-red-600 border-red-100'} text-[10px] rounded-full font-semibold border">
-            ${member.sector}
+            ${member.sector || 'Secteur non défini'}
           </span>
         </div>
       `);
@@ -129,10 +135,10 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
     if (!selectedMemberId || !mapInstanceRef.current) return;
 
     const member = allMembers.find(m => m.id === selectedMemberId);
-    if (member) {
+    if (member && member.location?.lat && member.location?.lng) {
       mapInstanceRef.current.flyTo(
-        [member.location.lat, member.location.lng], 
-        15, 
+        [member.location.lat, member.location.lng],
+        15,
         { duration: 1.5, easeLinearity: 0.25 }
       );
 
@@ -162,7 +168,7 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
+
         try {
           // 1. Reverse Geocoding: Fetch readable address from coordinates
           // Using OpenStreetMap Nominatim API (free) to get city and road
@@ -176,11 +182,11 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
               }
             });
             const data = await response.json();
-            
+
             if (data && data.address) {
               // Extract City: Nominatim returns variable fields for "city" depending on location type
               detectedCity = data.address.city || data.address.town || data.address.village || data.address.municipality || detectedCity;
-              
+
               // Extract Address: Use road name or display name parts
               const road = data.address.road || data.address.pedestrian;
               if (road) {
@@ -195,26 +201,26 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
 
           // 2. Update DB with new Coordinates AND new Address details
           await storageService.updateUserLocation(
-            currentUser.id, 
+            currentUser.id,
             { lat: latitude, lng: longitude },
             { city: detectedCity, address: detectedAddress }
           );
-          
+
           // 3. Update Local State immediately for UX
-          setAllMembers(prev => prev.map(m => 
-            m.id === currentUser.id 
-              ? { 
-                  ...m, 
-                  location: { 
-                    lat: latitude, 
-                    lng: longitude,
-                    city: detectedCity,
-                    address: detectedAddress
-                  } 
+          setAllMembers(prev => prev.map(m =>
+            m.id === currentUser.id
+              ? {
+                ...m,
+                location: {
+                  lat: latitude,
+                  lng: longitude,
+                  city: detectedCity,
+                  address: detectedAddress
                 }
+              }
               : m
           ));
-          
+
           if (mapInstanceRef.current) {
             mapInstanceRef.current.flyTo([latitude, longitude], 18);
             setSelectedMemberId(currentUser.id);
@@ -228,14 +234,14 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
       },
       (error) => {
         console.error("Geolocation error", error);
-        
+
         let msg = "Impossible de récupérer votre position.";
         if (error && typeof error === 'object') {
-           if (error.code === 1) msg = "Accès à la localisation refusé. Vérifiez vos permissions.";
-           else if (error.code === 2) msg = "Position indisponible. Vérifiez que votre GPS est activé.";
-           else if (error.code === 3) msg = "Délai d'attente dépassé.";
+          if (error.code === 1) msg = "Accès à la localisation refusé. Vérifiez vos permissions.";
+          else if (error.code === 2) msg = "Position indisponible. Vérifiez que votre GPS est activé.";
+          else if (error.code === 3) msg = "Délai d'attente dépassé.";
         }
-        
+
         alert(msg);
         setIsLocating(false);
       },
@@ -252,36 +258,35 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
             Membres ({filteredMembers.length})
           </h2>
           <div className="relative">
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher nom, ville..." 
+              placeholder="Rechercher nom, ville..."
               className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none dark:text-white"
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {filteredMembers.length > 0 ? (
             filteredMembers.slice(0, 50).map(member => (
-              <div 
+              <div
                 key={member.id}
                 onClick={() => setSelectedMemberId(member.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 flex items-start space-x-3 ${
-                  selectedMemberId === member.id 
-                    ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 shadow-sm transform scale-[1.02]' 
+                className={`p-3 rounded-lg cursor-pointer transition-all duration-200 flex items-start space-x-3 ${selectedMemberId === member.id
+                    ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 shadow-sm transform scale-[1.02]'
                     : 'hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent'
-                }`}
+                  }`}
               >
                 <div className="relative">
-                   <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
-                   {currentUser?.id === member.id && (
-                     <span className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-white" title="C'est vous">
-                       <div className="w-2 h-2 bg-white rounded-full"></div>
-                     </span>
-                   )}
+                  <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600" />
+                  {currentUser?.id === member.id && (
+                    <span className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-white" title="C'est vous">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </span>
+                  )}
                 </div>
                 <div>
                   <h3 className={`text-sm font-semibold ${selectedMemberId === member.id ? 'text-primary-800 dark:text-primary-400' : 'text-gray-900 dark:text-white'}`}>
@@ -307,7 +312,7 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
       <div className="flex-1 bg-white dark:bg-dark-card rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group h-[400px] lg:h-auto order-1 lg:order-2">
         {/* Map Container */}
         <div ref={mapContainerRef} className="absolute inset-0 z-0 bg-gray-100 dark:bg-gray-900" />
-        
+
         {/* Locate Me Button */}
         {currentUser && (
           <button
@@ -316,12 +321,12 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
             className="absolute top-4 right-4 z-[1000] bg-white dark:bg-dark-card p-3 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center space-x-2 font-medium text-sm group"
             title="Mettre à jour ma position GPS exacte"
           >
-             {isLocating ? (
-               <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
-             ) : (
-               <Crosshair className="w-5 h-5 group-hover:text-primary-600" />
-             )}
-             <span className="hidden sm:inline">Ma Position</span>
+            {isLocating ? (
+              <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+            ) : (
+              <Crosshair className="w-5 h-5 group-hover:text-primary-600" />
+            )}
+            <span className="hidden sm:inline">Ma Position</span>
           </button>
         )}
 
@@ -337,7 +342,7 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
                 <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{selectedMember.location.address}</p>
               </div>
             </div>
-            <button 
+            <button
               className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2 text-sm font-medium shadow-md ml-2 shrink-0"
               onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${selectedMember.location.lat},${selectedMember.location.lng}`, '_blank')}
             >

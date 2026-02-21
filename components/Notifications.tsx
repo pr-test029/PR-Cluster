@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { storageService } from '../services/storageService';
-import { Notification, ClusterVictory } from '../types';
+import { AppNotification, ClusterVictory } from '../types';
 import { Bell, Calendar, Trophy } from 'lucide-react';
 
 export const Notifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [victories, setVictories] = useState<ClusterVictory[]>([]);
 
   useEffect(() => {
