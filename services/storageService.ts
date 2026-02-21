@@ -10,7 +10,8 @@ import {
   query,
   where,
   orderBy,
-  limit as firestoreLimit
+  limit as firestoreLimit,
+  onSnapshot
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
@@ -142,7 +143,7 @@ export const storageService = {
   getPosts: async (): Promise<Post[]> => {
     const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Post));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Post));
   },
 
   addPost: async (post: Post): Promise<void> => {
@@ -210,7 +211,7 @@ export const storageService = {
   getCommentsForPost: async (postId: string): Promise<Comment[]> => {
     const q = query(collection(db, 'comments'), where('postId', '==', postId));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as Comment));
   },
 
   addComment: async (postId: string, content: string, authorId: string) => {
@@ -274,6 +275,82 @@ export const storageService = {
     return msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   },
 
+  subscribeToMessages: (targetId: string, currentUserId: string, callback: (messages: DiscussionMessage[]) => void) => {
+    let q;
+    if (targetId === 'group') {
+      q = query(
+        collection(db, 'messages'),
+        where('recipientId', '==', 'group'),
+        orderBy('timestamp', 'desc'),
+        firestoreLimit(50)
+      );
+    } else {
+      q = query(
+        collection(db, 'messages'),
+        where('recipientId', 'in', [targetId, currentUserId]),
+        orderBy('timestamp', 'desc'),
+        firestoreLimit(50)
+      );
+    }
+
+    return onSnapshot(q, (snapshot) => {
+      let msgs = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) } as DiscussionMessage));
+      if (targetId !== 'group') {
+        msgs = msgs.filter(m =>
+          (m.authorId === currentUserId && m.recipientId === targetId) ||
+          (m.authorId === targetId && m.recipientId === currentUserId)
+        );
+      }
+      callback(msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+    });
+  },
+
+  markAsRead: async (targetId: string, currentUserId: string) => {
+    // Find messages where I am the recipient and I haven't read them yet
+    const q = query(
+      collection(db, 'messages'),
+      where('recipientId', '==', currentUserId),
+      where('authorId', '==', targetId)
+    );
+
+    // Also handle group messages if needed, but for now focus on private
+    const snapshot = await getDocs(q);
+    const batchPromises = snapshot.docs.map(messageDoc => {
+      const data = messageDoc.data() as DiscussionMessage;
+      const readBy = data.readBy || [];
+      if (!readBy.includes(currentUserId)) {
+        return updateDoc(doc(db, 'messages', messageDoc.id), {
+          readBy: [...readBy, currentUserId]
+        });
+      }
+      return Promise.resolve();
+    });
+
+    await Promise.all(batchPromises);
+  },
+
+  getUnreadCounts: (currentUserId: string, callback: (counts: Record<string, number>) => void) => {
+    const q = query(
+      collection(db, 'messages'),
+      where('recipientId', 'in', [currentUserId, 'group']),
+      orderBy('timestamp', 'desc'),
+      firestoreLimit(100)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const counts: Record<string, number> = {};
+      snapshot.docs.forEach(doc => {
+        const msg = doc.data() as DiscussionMessage;
+        const readBy = msg.readBy || [];
+        if (msg.authorId !== currentUserId && !readBy.includes(currentUserId)) {
+          const key = msg.recipientId === 'group' ? 'group' : msg.authorId;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      });
+      callback(counts);
+    });
+  },
+
   addDiscussionMessage: async (msgData: { authorId: string, content: string, recipientId?: string }) => {
     const userDoc = await getDoc(doc(db, 'members', msgData.authorId));
     const userData = userDoc.exists() ? userDoc.data() as Member : null;
@@ -284,6 +361,7 @@ export const storageService = {
       authorAvatar: userData?.avatar || '',
       content: msgData.content,
       recipientId: msgData.recipientId || 'group',
+      readBy: [msgData.authorId],
       timestamp: new Date().toISOString(),
       displayTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };

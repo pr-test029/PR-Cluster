@@ -13,6 +13,7 @@ interface SidebarProps {
   setIsMobileMenuOpen: (isOpen: boolean) => void;
   onLogout: () => void;
   currentUser: Member | null;
+  unreadCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -21,7 +22,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
   onLogout,
-  currentUser
+  currentUser,
+  unreadCount
 }) => {
   const menuItems = [
     { id: AppView.FEED, label: 'Fil d\'Actualité', icon: Users },
@@ -73,15 +75,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
                   className={`
-                    w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200
+                    w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200
                     ${isActive
                       ? 'bg-primary-50 text-primary-600 font-medium shadow-sm border-l-4 border-primary-600 dark:bg-gray-800 dark:text-primary-400'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'}`} />
-                  <span>{item.label}</span>
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.id === 'DISCUSSION' && unreadCount && unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService } from '../services/storageService';
 import { DiscussionMessage, Member } from '../types';
-import { Send, Lock, MessageSquare, Loader2, Trash2, Users, Search, ChevronLeft, MoreVertical } from 'lucide-react';
+import { Send, Lock, MessageSquare, Loader2, Trash2, Users, Search, ChevronLeft, MoreVertical, Bell } from 'lucide-react';
 
 interface ChatTarget {
   id: string;
@@ -15,16 +15,17 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChat, setSelectedChat] = useState<ChatTarget>({ id: 'group', name: 'Discussion Générale', type: 'group' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // 1. Fetch all members
   useEffect(() => {
     const fetchMembers = async () => {
       const members = await storageService.getAllMembers();
@@ -33,24 +34,35 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
     if (currentUser) fetchMembers();
   }, [currentUser]);
 
+  // 2. Real-time messages listener
   useEffect(() => {
-    if (currentUser) {
-      loadMessages();
-    }
+    if (!currentUser) return;
+
+    setLoading(true);
+    const unsubscribe = storageService.subscribeToMessages(selectedChat.id, currentUser.id, (newMessages) => {
+      setMessages(newMessages);
+      setLoading(false);
+      // Auto scroll to bottom
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+      // Mark as read if conversation is active
+      if (selectedChat.id !== 'group') {
+        storageService.markAsRead(selectedChat.id, currentUser.id);
+      }
+    });
+
+    return () => unsubscribe();
   }, [currentUser, selectedChat.id]);
 
-  const loadMessages = async () => {
-    setLoading(true);
-    try {
-      const data = await storageService.getDiscussionMessages(50, selectedChat.id, currentUser?.id);
-      setMessages(data);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100);
-    } catch (e) {
-      console.error("Erreur de chargement des messages:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 3. Unread counts listener
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsubscribe = storageService.getUnreadCounts(currentUser.id, (counts) => {
+      setUnreadCounts(counts);
+      // Play a subtle sound or notify if a NEW message arrives (logic could be more complex, but we'll stick to counts)
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUser) return;
@@ -58,13 +70,12 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
     setNewMessage('');
 
     try {
-      const added = await storageService.addDiscussionMessage({
+      await storageService.addDiscussionMessage({
         authorId: currentUser.id,
         content: content,
         recipientId: selectedChat.id === 'group' ? 'group' : selectedChat.id
       });
-      setMessages(prev => [...prev, added]);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // The listener will update the list automatically
     } catch (e) {
       alert("Erreur lors de l'envoi.");
     }
@@ -74,7 +85,6 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
     if (!selectedMessageId) return;
     try {
       await storageService.deleteDiscussionMessage(selectedMessageId);
-      setMessages(prev => prev.filter(m => m.id !== selectedMessageId));
       setSelectedMessageId(null);
     } catch (e) {
       alert("Impossible de supprimer.");
@@ -129,13 +139,20 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
               setSelectedChat({ id: 'group', name: 'Discussion Générale', type: 'group' });
               if (window.innerWidth < 1024) setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all ${selectedChat.id === 'group' ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+            className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all relative ${selectedChat.id === 'group' ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
           >
             <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center shrink-0">
               <Users className="w-6 h-6 text-primary-600" />
             </div>
-            <div className={`text-left min-w-0 ${!isSidebarOpen && 'lg:hidden'}`}>
-              <p className="font-bold text-sm text-gray-900 dark:text-white truncate">Discussion Générale</p>
+            <div className={`text-left min-w-0 flex-1 ${!isSidebarOpen && 'lg:hidden'}`}>
+              <div className="flex justify-between items-center">
+                <p className="font-bold text-sm text-gray-900 dark:text-white truncate">Discussion Générale</p>
+                {unreadCounts['group'] > 0 && selectedChat.id !== 'group' && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {unreadCounts['group']}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-gray-500 truncate">Tout le Cluster</p>
             </div>
           </button>
@@ -150,14 +167,21 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
                 setSelectedChat({ id: member.id, name: member.businessName || member.name, avatar: member.avatar, type: 'private' });
                 if (window.innerWidth < 1024) setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all mt-1 ${selectedChat.id === member.id ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all mt-1 relative ${selectedChat.id === member.id ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
             >
               <div className="relative shrink-0">
                 <img src={member.avatar} alt={member.name} className="w-12 h-12 rounded-xl object-cover shadow-sm" />
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></span>
               </div>
-              <div className={`text-left min-w-0 ${!isSidebarOpen && 'lg:hidden'}`}>
-                <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{member.businessName || member.name}</p>
+              <div className={`text-left min-w-0 flex-1 ${!isSidebarOpen && 'lg:hidden'}`}>
+                <div className="flex justify-between items-center">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{member.businessName || member.name}</p>
+                  {unreadCounts[member.id] > 0 && selectedChat.id !== member.id && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {unreadCounts[member.id]}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 truncate">{member.sector || 'Membre'}</p>
               </div>
             </button>
@@ -188,9 +212,14 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
               </p>
             </div>
           </div>
-          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400">
+              <Bell className="w-5 h-5" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400">
+              <MoreVertical className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Messages List */}
@@ -201,27 +230,31 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full space-y-4">
               <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
-              <p className="text-sm text-gray-400">Chargement des messages...</p>
+              <p className="text-sm text-gray-400">Connexion sécurisée...</p>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-40">
               <MessageSquare className="w-16 h-16 text-gray-300" />
-              <p className="text-gray-500 max-w-xs text-sm">Aucun message ici. Soyez la première à briser la glace !</p>
+              <p className="text-gray-500 max-w-xs text-sm">Démarrez la conversation !</p>
             </div>
           ) : (
             messages.map((msg, idx) => {
               const isMe = msg.authorId === currentUser.id;
+              const nextMsg = messages[idx + 1];
+              const isEndOfSequence = !nextMsg || nextMsg.authorId !== msg.authorId;
+
               return (
-                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start items-end space-x-2'}`}>
-                  {!isMe && (
+                <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start items-end space-x-2'} ${!isEndOfSequence ? 'mb-1' : ''}`}>
+                  {!isMe && isEndOfSequence && (
                     <img src={msg.authorAvatar} alt={msg.authorName} className="w-8 h-8 rounded-lg shrink-0 object-cover shadow-sm" />
                   )}
+                  {!isMe && !isEndOfSequence && <div className="w-8" />}
+
                   <div
                     onContextMenu={(e) => { if (isMe) { e.preventDefault(); setSelectedMessageId(msg.id); } }}
-                    className={`max-w-[85%] lg:max-w-[70%] group transition-all transform hover:scale-[1.01] ${isMe ? 'items-end' : 'items-start'
-                      }`}
+                    className={`max-w-[85%] lg:max-w-[70%] group transition-all transform hover:scale-[1.01] ${isMe ? 'items-end' : 'items-start'}`}
                   >
-                    {!isMe && (
+                    {!isMe && (idx === 0 || messages[idx - 1].authorId !== msg.authorId) && (
                       <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 mb-1 ml-1">
                         {msg.authorName}
                       </p>
@@ -233,7 +266,11 @@ export const GeneralDiscussion: React.FC<{ currentUser: Member | null }> = ({ cu
                       <p className="leading-relaxed">{msg.content}</p>
                       <div className={`flex items-center mt-1 text-[9px] ${isMe ? 'justify-end opacity-70' : 'opacity-40'}`}>
                         <span>{msg.displayTime}</span>
-                        {isMe && <span className="ml-1">✓✓</span>}
+                        {isMe && (
+                          <span className={`ml-1 ${msg.readBy?.length && msg.readBy.length > 1 ? 'text-blue-300 font-bold' : ''}`}>
+                            ✓✓
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

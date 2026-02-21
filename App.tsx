@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Member | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -113,6 +114,18 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // Messages Unread Listener
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsubscribe = storageService.getUnreadCounts(currentUser.id, (counts) => {
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      setUnreadMessagesCount(total);
+
+      // OPTIONAL: Trigger a vibration/sound if total increased
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
@@ -199,6 +212,7 @@ const App: React.FC = () => {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
         onLogout={handleLogout}
         currentUser={currentUser}
+        unreadCount={unreadMessagesCount}
       />
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
