@@ -19,7 +19,8 @@ export interface Member {
   trainingProgress: number; // 0-100
   badges: string[];
   role: 'ADMIN' | 'MEMBER'; // Added Role
-  completedTrainings: string[]; // Added to track completed training IDs
+  completedTrainings: string[];
+  financialData?: { month: string; CA: number; Capital: number; }[];
 }
 
 export interface Comment {

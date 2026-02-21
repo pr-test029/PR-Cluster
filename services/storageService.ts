@@ -322,7 +322,7 @@ export const storageService = {
 
   saveFcmToken: async (userId: string, token: string): Promise<void> => {
     try {
-      const userRef = doc(db, 'users', userId);
+      const userRef = doc(db, 'members', userId);
       await updateDoc(userRef, { fcmToken: token });
     } catch (error) {
       console.error("Error saving FCM token", error);
