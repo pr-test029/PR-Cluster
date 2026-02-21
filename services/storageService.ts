@@ -139,6 +139,18 @@ export const storageService = {
     await signOut(auth);
   },
 
+  getAuth: () => auth,
+
+  getUserData: async (uid: string): Promise<Member | null> => {
+    try {
+      const userDoc = await getDoc(doc(db, 'members', uid));
+      return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } as Member : null;
+    } catch (e) {
+      console.error("Error fetching user data", e);
+      return null;
+    }
+  },
+
   // --- POSTS ---
   getPosts: async (): Promise<Post[]> => {
     const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
