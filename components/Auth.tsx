@@ -4,7 +4,7 @@ import { Member } from '../types';
 import {
   UserCircle, Lock, Mail, Building2, MapPin,
   ShieldCheck, ArrowLeft, Loader2, Users,
-  TrendingUp, Globe, Sparkles
+  TrendingUp, Globe, Sparkles, Phone
 } from 'lucide-react';
 
 interface AuthProps {
@@ -21,6 +21,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
   const [sector, setSector] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
@@ -43,7 +44,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
           return;
         }
         const newUser = await storageService.register({
-          name, email, password, businessName, sector, city, address, role
+          name, email, password, businessName, phone, sector, city, address, role
         });
         onLogin(newUser);
       }
@@ -225,6 +226,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
                     value={businessName}
                     onChange={e => setBusinessName(e.target.value)}
                     placeholder="Nom de l'entreprise"
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="Numéro de téléphone (Contact)"
                     className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
                   />
                 </div>

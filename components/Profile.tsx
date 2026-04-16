@@ -24,7 +24,9 @@ import {
   X,
   ShieldCheck,
   Camera,
-  Upload
+  Upload,
+  Phone,
+  Mail as MailIcon
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -63,6 +65,7 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
     city: '',
     address: '',
     email: '',
+    phone: '',
     role: 'MEMBER' as 'ADMIN' | 'MEMBER'
   });
 
@@ -100,6 +103,7 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
         city: user.location.city,
         address: user.location.address,
         email: user.email || '',
+        phone: user.phone || '',
         role: user.role || 'MEMBER'
       });
       setPreviewAvatar(user.avatar);
@@ -131,6 +135,7 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
         city: editForm.city,
         address: editForm.address
       },
+      phone: editForm.phone,
       role: editForm.role
     };
 
@@ -242,7 +247,21 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
               )}
             </h1>
             <p className="text-gray-600 dark:text-gray-300 font-medium">{user.businessName} - {user.sector}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{user.location.address}, {user.location.city}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center justify-center md:justify-start">
+              <MapPin className="w-3 h-3 mr-1" /> {user.location.address}, {user.location.city}
+              {user.phone && (
+                <>
+                  <span className="mx-2">•</span>
+                  <Phone className="w-3 h-3 mr-1" /> {user.phone}
+                </>
+              )}
+              {user.email && (
+                <>
+                  <span className="mx-2">•</span>
+                  <MailIcon className="w-3 h-3 mr-1" /> {user.email}
+                </>
+              )}
+            </p>
             <div className="flex items-center justify-center md:justify-start mt-2 space-x-2">
               {user.badges.map(badge => (
                 <span key={badge} className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-bold rounded uppercase flex items-center">
@@ -565,6 +584,16 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Téléphone (Contact)</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
                 />
               </div>

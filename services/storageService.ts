@@ -48,6 +48,7 @@ export const storageService = {
                 role: 'MEMBER',
                 completedTrainings: [],
                 businessName: '',
+                phone: '',
                 sector: '',
                 location: { lat: -4.4419, lng: 15.2663, address: '', city: 'Kinshasa' }
               };
@@ -97,6 +98,7 @@ export const storageService = {
         role: 'MEMBER',
         completedTrainings: [],
         businessName: '',
+        phone: '',
         sector: '',
         location: { lat: -4.4419, lng: 15.2663, address: '', city: 'Kinshasa' }
       };
@@ -115,6 +117,7 @@ export const storageService = {
       name: userData.name || 'Utilisatrice',
       email: userData.email,
       businessName: userData.businessName || '',
+      phone: userData.phone || '',
       sector: userData.sector || '',
       location: {
         lat: -4.4419 + (Math.random() - 0.5) * 0.01,

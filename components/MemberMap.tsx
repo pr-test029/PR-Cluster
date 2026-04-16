@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService } from '../services/storageService';
-import { MapPin, Search, Navigation, Crosshair, Loader2 } from 'lucide-react';
+import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2 } from 'lucide-react';
 import { Member } from '../types';
 
 // Declaration for the global Leaflet object added via CDN
@@ -85,10 +85,10 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
       const borderColor = isCurrentUser ? '#3b82f6' : '#ef4444'; // Blue for me, Red for others
       return L.divIcon({
         className: 'custom-div-icon',
-        html: `<div style="background-image: url('${avatarUrl}'); width: 40px; height: 40px; border-radius: 50%; background-size: cover; border: 3px solid ${borderColor}; box-shadow: 0 4px 6px rgba(0,0,0,0.3); background-color: white;"></div>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
+        html: `<div style="background-image: url('${avatarUrl}'); width: 42px; height: 42px; border-radius: 50%; background-size: cover; background-position: center; border: 3px solid ${borderColor}; box-shadow: 0 4px 6px rgba(0,0,0,0.3); background-color: white;"></div>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
+        popupAnchor: [0, -21]
       });
     };
 
@@ -339,6 +339,26 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Localisation</p>
                   <p className="text-sm text-gray-700 dark:text-gray-200">{selectedMember.location.address}, {selectedMember.location.city}</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Contact direct</p>
+                    <div className="space-y-2">
+                       {selectedMember.phone && (
+                         <div className="flex items-center text-sm text-gray-700 dark:text-gray-200">
+                           <Phone className="w-3.5 h-3.5 mr-2 text-primary-500" />
+                           <span>{selectedMember.phone}</span>
+                         </div>
+                       )}
+                       {selectedMember.email && (
+                         <div className="flex items-center text-sm text-gray-700 dark:text-gray-200 truncate">
+                           <Mail className="w-3.5 h-3.5 mr-2 text-primary-500" />
+                           <span className="truncate">{selectedMember.email}</span>
+                         </div>
+                       )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-2">

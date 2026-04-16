@@ -16,7 +16,8 @@ export const MOCK_MEMBERS: Member[] = [
     trainingProgress: 100,
     badges: ['Expert Qualité', 'Formatrice'],
     role: 'ADMIN',
-    completedTrainings: ['t1', 't2', 't3', 't4']
+    completedTrainings: ['t1', 't2', 't3', 't4'],
+    phone: '+243 812 345 678'
   },
   {
     id: '2',
@@ -32,7 +33,8 @@ export const MOCK_MEMBERS: Member[] = [
     trainingProgress: 45,
     badges: ['Nouveau Membre'],
     role: 'MEMBER',
-    completedTrainings: ['t1']
+    completedTrainings: ['t1'],
+    phone: '+243 998 765 432'
   },
   {
     id: '3',
@@ -48,7 +50,8 @@ export const MOCK_MEMBERS: Member[] = [
     trainingProgress: 75,
     badges: ['Leader Communautaire'],
     role: 'MEMBER',
-    completedTrainings: ['t1', 't2', 't3']
+    completedTrainings: ['t1', 't2', 't3'],
+    phone: '+242 06 123 4567'
   }
 ];
 

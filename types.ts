@@ -20,6 +20,7 @@ export interface Member {
   badges: string[];
   role: 'ADMIN' | 'MEMBER'; // Added Role
   completedTrainings: string[];
+  phone?: string; // Added for Contact
   financialData?: { month: string; CA: number; Capital: number; }[];
 }
 
