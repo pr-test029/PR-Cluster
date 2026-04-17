@@ -1,4 +1,10 @@
 
+export const APP_LOGO = "https://i.ibb.co/4n4N35GV/Cluster-des-Femmes-entrepreneur-du-congo-removebg-preview.png";
+export const AGENCY_LOGO = "https://i.ibb.co/3YQyDn3R/LOGO-Powerful-Reach.jpg";
+export const APP_NAME = "Cluster des Femmes Entrepreneurs du Congo";
+export const APP_NAME_SHORT = "CFEC";
+
+
 import { Member, Post, TrainingResource } from './types';
 
 export const MOCK_MEMBERS: Member[] = [

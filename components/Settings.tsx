@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Moon, Sun, Globe, Bell, Mail, Phone, MapPin, ChevronRight, Laptop, Info } from 'lucide-react';
+import { APP_NAME, AGENCY_LOGO } from '../constants';
 
 interface SettingsProps {
   theme: string;
@@ -8,7 +8,7 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
-  const AGENCY_LOGO_URL = "https://aaeqzcffwehqajriwrqs.supabase.co/storage/v1/object/sign/Bibliotheque%20d'image%20perso/PR-LG-PNG.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iYmRhMWFlYS0xMTNlLTQ5NDUtOWFlYy1kNWMyMzY3YmY1YTUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJCaWJsaW90aGVxdWUgZCdpbWFnZSBwZXJzby9QUi1MRy1QTkcucG5nIiwiaWF0IjoxNzY4MDA0Njc3LCJleHAiOjE4OTQxNDg2Nzd9.C39GaUJa35o3BI0jHJTBBMEraYuj5x8Oc1lAy_nTlzw";
+  const AGENCY_LOGO_URL = AGENCY_LOGO;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
@@ -101,7 +101,7 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
         </div>
         <div className="p-6">
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-            La plateforme <strong className="text-primary-600">Cluster</strong> a été créée pour répondre aux besoins spécifiques du
+            La plateforme <strong className="text-primary-600">{APP_NAME}</strong> a été créée pour répondre aux besoins spécifiques du
             Cluster Congo Entreprise Développement. Notre mission est de fournir un espace numérique sécurisé et professionnel
             permettant aux femmes entrepreneures de se connecter, de se former et de croître ensemble.
           </p>

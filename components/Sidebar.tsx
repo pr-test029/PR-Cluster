@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { AppView, Member } from '../types';
+import { APP_LOGO, APP_NAME_SHORT } from '../constants';
 import {
   LayoutDashboard, Users, MapPin, GraduationCap, UserCircle, LogOut,
   ShieldAlert, LogIn, MessagesSquare, Settings
@@ -61,8 +61,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static
       `}>
-        <div className="h-16 flex items-center justify-center border-b border-primary-100 dark:border-gray-800 bg-primary-50 dark:bg-gray-900">
-          <h1 className="text-xl font-bold text-primary-600 tracking-wider">Cluster</h1>
+        <div className="h-20 flex items-center px-6 border-b border-primary-100 dark:border-gray-800 bg-primary-50 dark:bg-gray-900">
+          <img src={APP_LOGO} alt="Logo" className="w-10 h-10 object-contain mr-3" />
+          <h1 className="text-xl font-bold text-primary-600 tracking-wider truncate">{APP_NAME_SHORT}</h1>
         </div>
 
         <div className="p-4 overflow-y-auto h-[calc(100vh-4rem)] flex flex-col justify-between">

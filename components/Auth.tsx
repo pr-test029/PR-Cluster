@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { storageService } from '../services/storageService';
 import { Member } from '../types';
+import { APP_LOGO, APP_NAME } from '../constants';
 import {
   UserCircle, Lock, Mail, Building2, MapPin,
   ShieldCheck, ArrowLeft, Loader2, Users,
@@ -103,10 +104,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
         {/* Content */}
         <div className="relative z-10 p-12 max-w-xl">
           <div className="mb-8 flex items-center space-x-3">
-            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-sm">
-              <Sparkles className="w-8 h-8 text-primary-400" />
+            <div className="bg-white p-2 rounded-xl backdrop-blur-sm overflow-hidden w-12 h-12 flex items-center justify-center shadow-lg shadow-primary-500/20">
+              <img src={APP_LOGO} alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">Cluster</h1>
+            <h1 className="text-3xl font-bold tracking-tight leading-tight">{APP_NAME}</h1>
           </div>
 
           <h2 className="text-2xl font-light mb-8 text-gray-200">
@@ -156,8 +157,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onCancel }) => {
 
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-block p-3 rounded-full bg-primary-50 mb-4 lg:hidden">
-              <Sparkles className="w-8 h-8 text-primary-600" />
+            <div className="inline-block p-1 bg-white rounded-2xl mb-4 lg:hidden shadow-md w-16 h-16 overflow-hidden">
+               <img src={APP_LOGO} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">
               {isLogin ? 'Bon retour parmi nous' : 'Rejoignez le Cluster'}
