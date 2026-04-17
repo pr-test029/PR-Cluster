@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService } from '../services/storageService';
-import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2 } from 'lucide-react';
+import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2, X } from 'lucide-react';
 import { Member } from '../types';
 
 // Declaration for the global Leaflet object added via CDN
@@ -386,5 +386,3 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
   );
 };
 
-// Add standard X icon import
-import { X } from 'lucide-react';

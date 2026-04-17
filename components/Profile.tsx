@@ -13,6 +13,7 @@ import {
 import {
   Award,
   Briefcase,
+  MapPin,
   TrendingUp,
   CheckCircle,
   Edit2,
