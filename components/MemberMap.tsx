@@ -9,9 +9,10 @@ declare const L: any;
 
 interface MemberMapProps {
   currentUser: Member | null;
+  onMemberClick?: (memberId: string) => void;
 }
 
-export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
+export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick }) => {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [allMembers, setAllMembers] = useState<Member[]>([]);
@@ -320,11 +321,13 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser }) => {
               </button>
             </div>
 
-            <div className="px-5 pb-6 -mt-10 flex-1 flex flex-col items-center">
+            <div className="px-5 pb-6 -mt-10 flex-1 flex flex-col items-center relative z-10">
               <img
                 src={selectedMember.avatar}
                 alt={selectedMember.name}
-                className="w-20 h-20 rounded-full border-4 border-white dark:border-dark-card shadow-lg mb-3 object-cover"
+                onClick={() => onMemberClick?.(selectedMember.id)}
+                className="w-20 h-20 rounded-full border-4 border-white dark:border-dark-card shadow-lg mb-3 object-cover cursor-pointer hover:scale-105 hover:border-primary-200 transition-all"
+                title="Voir le parcours complet"
               />
 
               <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center">{selectedMember.businessName}</h3>

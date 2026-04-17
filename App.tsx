@@ -179,7 +179,7 @@ const App: React.FC = () => {
       case AppView.DISCUSSION:
         return <GeneralDiscussion currentUser={currentUser} />;
       case AppView.MAP:
-        return <MemberMap currentUser={currentUser} />;
+        return <MemberMap currentUser={currentUser} onMemberClick={handleShowProfile} />;
       case AppView.PROFILE:
         return (
           <Profile
