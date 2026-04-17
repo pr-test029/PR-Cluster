@@ -4,8 +4,9 @@ import { storageService } from '../services/storageService';
 import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2, X } from 'lucide-react';
 import { Member } from '../types';
 
-// Declaration for the global Leaflet object added via CDN
+// Declaration for the global objects added via CDN
 declare const L: any;
+declare const OSMBuildings: any;
 
 interface MemberMapProps {
   currentUser: Member | null;
@@ -62,15 +63,14 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
       maxZoom: 19
     });
 
-    // 2. Satellite View (Google Imagery - Unofficial but widely used Tile URL)
-    const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-      maxZoom: 20,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      attribution: '&copy; Google'
+    // 2. Satellite View (Esri World Imagery - High Quality)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
     });
 
-    // 3. Hybrid View (Satellite + Labels)
-    const hybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+    // 3. Hybrid View (Google Hybrid - Satellite + Labels)
+    const hybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
       attribution: '&copy; Google'
@@ -82,11 +82,35 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
     // Layer control for switching
     const baseMaps = {
       "Plan (Standard)": streetLayer,
-      "Satellite": satelliteLayer,
-      "Vue Hybride": hybridLayer
+      "Satellite (Esri)": satelliteLayer,
+      "Vue Hybride (Google)": hybridLayer
     };
 
     L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+    // Add Scale control
+    L.control.scale({ position: 'bottomleft' }).addTo(map);
+
+    // Add Fullscreen control
+    if (L.control.fullscreen) {
+      L.control.fullscreen({
+        position: 'topleft',
+        title: 'Plein écran',
+        titleCancel: 'Quitter le plein écran',
+        forceSeparateButton: true
+      }).addTo(map);
+    }
+
+    // 4. Initialize OSM Buildings (3D)
+    let osmb: any = null;
+    try {
+      if (typeof OSMBuildings !== 'undefined') {
+        osmb = new OSMBuildings(map);
+        osmb.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/59fcc2e8/tile/{z}/{x}/{y}.json');
+      }
+    } catch (err) {
+      console.error("OSM Buildings failed to initialize", err);
+    }
 
     // Layer group for markers to easily clear/update them
     const layerGroup = L.layerGroup().addTo(map);
