@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService } from '../services/storageService';
-import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2, X } from 'lucide-react';
+import { MapPin, Search, Navigation, Crosshair, Loader2, Phone, Mail, Building2, X, Globe, Map as MapIcon, Layers, Box } from 'lucide-react';
 import { Member } from '../types';
 
 // Declaration for the global objects added via CDN
@@ -22,6 +22,14 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<{ [key: string]: any }>({});
   const layerGroupRef = useRef<any>(null);
+  const [activeLayer, setActiveLayer] = useState<'streets' | 'satellite' | 'hybrid'>('streets');
+  const [is3DEnabled, setIs3DEnabled] = useState(false);
+  
+  // Refs for tile layers to switch them easily
+  const streetLayerRef = useRef<any>(null);
+  const satelliteLayerRef = useRef<any>(null);
+  const hybridLayerRef = useRef<any>(null);
+  const osmbRef = useRef<any>(null);
 
   // Fetch real members on mount
   useEffect(() => {
@@ -76,17 +84,12 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
       attribution: '&copy; Google'
     });
 
+    streetLayerRef.current = streetLayer;
+    satelliteLayerRef.current = satelliteLayer;
+    hybridLayerRef.current = hybridLayer;
+
     // Default to Street View
     streetLayer.addTo(map);
-
-    // Layer control for switching
-    const baseMaps = {
-      "Plan (Standard)": streetLayer,
-      "Satellite (Esri)": satelliteLayer,
-      "Vue Hybride (Google)": hybridLayer
-    };
-
-    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
     // Add Scale control
     L.control.scale({ position: 'bottomleft' }).addTo(map);
@@ -101,12 +104,10 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
       }).addTo(map);
     }
 
-    // 4. Initialize OSM Buildings (3D)
-    let osmb: any = null;
+    // 4. Initialize OSM Buildings (3D) - Don't add to map yet, just create the instance
     try {
       if (typeof OSMBuildings !== 'undefined') {
-        osmb = new OSMBuildings(map);
-        osmb.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.2/59fcc2e8/tile/{z}/{x}/{y}.json');
+        osmbRef.current = new OSMBuildings(map);
       }
     } catch (err) {
       console.error("OSM Buildings failed to initialize", err);
@@ -124,6 +125,40 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
       }
     };
   }, []);
+
+  // Handle Layer Switching
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    // Remove all layers first
+    [streetLayerRef.current, satelliteLayerRef.current, hybridLayerRef.current].forEach(layer => {
+      if (layer && map.hasLayer(layer)) map.removeLayer(layer);
+    });
+
+    // Add the active one
+    if (activeLayer === 'streets') streetLayerRef.current?.addTo(map);
+    if (activeLayer === 'satellite') satelliteLayerRef.current?.addTo(map);
+    if (activeLayer === 'hybrid') hybridLayerRef.current?.addTo(map);
+
+  }, [activeLayer]);
+
+  // Handle 3D Switching
+  useEffect(() => {
+    if (!osmbRef.current) return;
+    if (is3DEnabled) {
+      osmbRef.current.addGeoJSONTiles('https://{s}.data.osmbuildings.org/0.3/anonymous/tile/{z}/{x}/{y}.json');
+    } else {
+      // OSMBuildings typically doesn't have a simple remove, but we can clear tiles
+      // This is a simplified approach
+      try {
+        if (osmbRef.current.destroy) {
+          osmbRef.current.destroy();
+          // We might need to recreate it later if destroyed
+        }
+      } catch (e) {}
+    }
+  }, [is3DEnabled]);
 
   // Update Markers when filteredMembers changes
   useEffect(() => {
@@ -362,6 +397,45 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
             <span>Ma Position</span>
           </button>
         )}
+
+        {/* Custom Map Controls Menu */}
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col space-y-2">
+          <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-sm p-1.5 rounded-xl shadow-xl border border-white/20 dark:border-gray-700 flex flex-col space-y-1">
+            <button
+              onClick={() => setActiveLayer('streets')}
+              className={`p-2.5 rounded-lg transition-all flex items-center space-x-2 group ${activeLayer === 'streets' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              title="Vue Plan"
+            >
+              <MapIcon className="w-5 h-5" />
+              <span className={`text-[10px] font-bold uppercase tracking-wider overflow-hidden transition-all duration-300 ${activeLayer === 'streets' ? 'w-10 opacity-100' : 'w-0 opacity-0'}`}>Plan</span>
+            </button>
+            <button
+              onClick={() => setActiveLayer('satellite')}
+              className={`p-2.5 rounded-lg transition-all flex items-center space-x-2 group ${activeLayer === 'satellite' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              title="Vue Satellite"
+            >
+              <Globe className="w-5 h-5" />
+              <span className={`text-[10px] font-bold uppercase tracking-wider overflow-hidden transition-all duration-300 ${activeLayer === 'satellite' ? 'w-16 opacity-100' : 'w-0 opacity-0'}`}>Satellite</span>
+            </button>
+            <button
+              onClick={() => setActiveLayer('hybrid')}
+              className={`p-2.5 rounded-lg transition-all flex items-center space-x-2 group ${activeLayer === 'hybrid' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              title="Vue Hybride"
+            >
+              <Layers className="w-5 h-5" />
+              <span className={`text-[10px] font-bold uppercase tracking-wider overflow-hidden transition-all duration-300 ${activeLayer === 'hybrid' ? 'w-14 opacity-100' : 'w-0 opacity-0'}`}>Hybride</span>
+            </button>
+            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2" />
+            <button
+              onClick={() => setIs3DEnabled(!is3DEnabled)}
+              className={`p-2.5 rounded-lg transition-all flex items-center space-x-2 group ${is3DEnabled ? 'bg-amber-500 text-white shadow-lg' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              title="Vue 3D (Relief)"
+            >
+              <Box className="w-5 h-5" />
+              <span className={`text-[10px] font-bold uppercase tracking-wider overflow-hidden transition-all duration-300 ${is3DEnabled ? 'w-6 opacity-100' : 'w-0 opacity-0'}`}>3D</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 3. Details Panel (New) */}
