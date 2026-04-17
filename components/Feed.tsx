@@ -174,20 +174,6 @@ export const Feed: React.FC<FeedProps> = ({ onAuthorClick, currentUser }) => {
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
 
-      {/* Indicateur de statut de connexion */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center space-x-2">
-          {isFallback ? (
-            <div className="flex items-center text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full text-xs font-bold border border-amber-200">
-              <Database className="w-3 h-3 mr-1" /> Mode Démo (SQL non appliqué)
-            </div>
-          ) : (
-            <div className="flex items-center text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Connecté au Cluster (Supabase)
-            </div>
-          )}
-        </div>
-      </div>
 
       {currentUser ? (
         <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
