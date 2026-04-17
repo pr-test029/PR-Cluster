@@ -95,11 +95,16 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
 
     // Add markers for filtered members
     filteredMembers.forEach((member) => {
-      // SAFETY CHECK: Skip if location is missing
-      if (!member.location?.lat || !member.location?.lng) {
-        console.warn(`Member ${member.id} (${member.name}) has no valid location cooordinates.`);
-        return;
+      // SAFETY CHECK: Skip if location is missing or invalid
+      const lat = Number(member.location?.lat);
+      const lng = Number(member.location?.lng);
+      
+      if (isNaN(lat) || isNaN(lng) || (lat === -4.4419 && lng === 15.2663 && member.id !== currentUser?.id)) {
+        // We skip default positions for others to avoid overlap, OR we can show them with a warning
+        // For now, let's just make sure they are valid numbers
       }
+
+      if (isNaN(lat) || isNaN(lng)) return;
 
       const isCurrentUser = currentUser?.id === member.id;
       const marker = L.marker([member.location.lat, member.location.lng], {

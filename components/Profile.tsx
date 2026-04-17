@@ -65,6 +65,8 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
     sector: '',
     city: '',
     address: '',
+    lat: 0,
+    lng: 0,
     email: '',
     phone: '',
     role: 'MEMBER' as 'ADMIN' | 'MEMBER'
@@ -103,6 +105,8 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
         sector: user.sector,
         city: user.location.city,
         address: user.location.address,
+        lat: user.location.lat,
+        lng: user.location.lng,
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || 'MEMBER'
@@ -134,7 +138,9 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
       location: {
         ...user.location,
         city: editForm.city,
-        address: editForm.address
+        address: editForm.address,
+        lat: Number(editForm.lat),
+        lng: Number(editForm.lng)
       },
       phone: editForm.phone,
       role: editForm.role
@@ -578,6 +584,36 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Latitude (GPS)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editForm.lat}
+                    onChange={(e) => setEditForm({ ...editForm, lat: parseFloat(e.target.value) || 0 })}
+                    placeholder="Ex: -4.3224"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Longitude (GPS)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editForm.lng}
+                    onChange={(e) => setEditForm({ ...editForm, lng: parseFloat(e.target.value) || 0 })}
+                    placeholder="Ex: 15.3070"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-primary-50 dark:bg-primary-900/10 border-l-4 border-primary-400 p-3 rounded">
+                <p className="text-[11px] text-primary-800 dark:text-primary-300">
+                  <strong>Astuce :</strong> Pour obtenir vos coordonnées précises, ouvrez Google Maps, faites un clic droit sur votre emplacement et copiez les chiffres (ex: -4.3224, 15.3070).
+                </p>
+              </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Email</label>
@@ -601,7 +637,7 @@ export const Profile: React.FC<ProfileProps> = ({ setView, viewedMemberId, curre
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-3 rounded">
                 <p className="text-xs text-yellow-800 dark:text-yellow-300">
-                  Note: La modification de votre ville mettra automatiquement à jour votre position sur la carte des membres.
+                  Note: La modification de votre ville ou de vos coordonnées GPS mettra à jour votre position sur la carte des membres.
                 </p>
               </div>
 
