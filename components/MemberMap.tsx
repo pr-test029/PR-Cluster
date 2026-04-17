@@ -56,10 +56,37 @@ export const MemberMap: React.FC<MemberMapProps> = ({ currentUser, onMemberClick
     // Initialize map centered on Congo (Kinshasa area generally)
     const map = L.map(mapContainerRef.current).setView([-4.4419, 15.2663], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // 1. Street View (OpenStreetMap)
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19
-    }).addTo(map);
+    });
+
+    // 2. Satellite View (Google Imagery - Unofficial but widely used Tile URL)
+    const satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google'
+    });
+
+    // 3. Hybrid View (Satellite + Labels)
+    const hybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google'
+    });
+
+    // Default to Street View
+    streetLayer.addTo(map);
+
+    // Layer control for switching
+    const baseMaps = {
+      "Plan (Standard)": streetLayer,
+      "Satellite": satelliteLayer,
+      "Vue Hybride": hybridLayer
+    };
+
+    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
     // Layer group for markers to easily clear/update them
     const layerGroup = L.layerGroup().addTo(map);
