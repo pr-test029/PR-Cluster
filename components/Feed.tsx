@@ -51,7 +51,11 @@ export const Feed: React.FC<FeedProps> = ({ onAuthorClick, currentUser }) => {
       }
     } catch (err: any) {
       console.error("Fetch posts error", err);
-      setError("Erreur de base de données. Veuillez rafraîchir la page.");
+      if (err.message?.includes("permissions") || err.code === "permission-denied") {
+        setError("Accès refusé : Vérifiez vos règles de sécurité Firestore ou créez l'index requis.");
+      } else {
+        setError("Erreur de base de données. Veuillez rafraîchir la page.");
+      }
     } finally {
       setLoading(false);
     }

@@ -2,19 +2,114 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Règles de sécurité définitives pour Cluster
-    // Seuls les utilisateurs connectés (authentifiés via Google ou Email) peuvent lire et écrire les données.
-    
-    match /{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // Fonction utilitaire pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
     }
-    
-    // Exemple de règles plus strictes possibles plus tard :
-    // match /members/{userId} {
-    //   allow read: if request.auth != null;
-    //   allow write: if request.auth.uid == userId;
-    // }
+
+    // Fonction pour vérifier si l'utilisateur appartient à l'école spécifiée
+    function belongsToSchool(schoolId) {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.school_id == schoolId) ||
+        (exists(/databases/$(database)/documents/sessions/$(request.auth.uid)) && get(/databases/$(database)/documents/sessions/$(request.auth.uid)).data.school_id == schoolId)
+      );
+    }
+
+    // Fonction pour vérifier si l'utilisateur est l'administrateur système
+    function isAdmin() {
+      return isAuthenticated() &&
+             request.auth.token.email == 'powerfulreach029@gmail.com';
+    }
+
+    // Fonction pour vérifier si l'utilisateur est le propriétaire de l'école
+    function isSchoolOwner(schoolId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/schools/$(schoolId)) && 
+             get(/databases/$(database)/documents/schools/$(schoolId)).data.owner_id == request.auth.uid;
+    }
+
+    // --- COLLECTIONS PR-CONNEXION (CLUSTER) ---
+
+    // Membres du Cluster
+    match /members/{userId} {
+      allow read: if true; // Permettre la lecture publique des profils
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    // Posts / Fil d'actualité
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+    }
+
+    // Commentaires
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+    }
+
+    // Formations
+    match /trainings/{trainingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Messages (Privés et Groupe)
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.recipientId == 'group' || 
+        resource.data.authorId == request.auth.uid || 
+        resource.data.recipientId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+    }
+
+    // Notifications, Objectifs, Victoires
+    match /notifications/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /goals/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /victories/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // --- COLLECTIONS SYSTÈME SCOLAIRE (EXISTANTES) ---
+
+    match /profiles/{userId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+    }
+
+    match /sessions/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /schools/{schoolId} {
+      allow read: if isAdmin() || isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || (isSchoolOwner(schoolId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription_plan', 'subscription_expires_at', 'subscription_status']));
+    }
+
+    match /students/{studentId} {
+      allow read: if isAdmin() || isAuthenticated();
+      allow create, update, delete: if isAdmin() || belongsToSchool(request.resource.data.school_id);
+    }
+
+    match /grades/{gradeId} {
+      allow read: if isAdmin() || belongsToSchool(resource.data.school_id);
+      allow create, update, delete: if isAdmin() || belongsToSchool(request.resource.data.school_id);
+    }
+
+    match /app_config/{configId} {
+      allow read: if isAdmin() || isAuthenticated();
+      allow create, update, delete: if isAdmin() || belongsToSchool(request.resource.data.school_id);
+    }
+
+    match /admin_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+    }
   }
 }
