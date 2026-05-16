@@ -123,7 +123,12 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
 
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
             {/* Logo Section */}
-            <div className="w-32 h-32 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg overflow-hidden p-2">
+            <a 
+              href="https://powerfulreach.netlify.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-32 h-32 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg overflow-hidden p-2 hover:scale-105 transition-transform cursor-pointer"
+            >
               <img
                 src={AGENCY_LOGO_URL}
                 onError={(e) => {
@@ -132,10 +137,17 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme }) => {
                 alt="Agence Powerful Reach Logo"
                 className="w-full h-full object-contain"
               />
-            </div>
+            </a>
 
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">POWERFUL REACH</h1>
+              <a 
+                href="https://powerfulreach.netlify.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block hover:text-primary-400 transition-colors"
+              >
+                <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">POWERFUL REACH</h1>
+              </a>
               <p className="text-gray-300 text-sm max-w-lg">
                 Agence de développement digital et d'innovation technologique.
                 Nous transformons vos visions en solutions numériques performantes, intuitives et scalables.
